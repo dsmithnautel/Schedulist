@@ -25,4 +25,4 @@ npm run dev
 ```
 
 A ping will be sent to mongodb and you will be notified in the server terminal if connection with database is successful.
-Go to http://localhost:5050/ to check fronend/backebd connection
+Go to http://localhost:5173/test to check frontend/backend connection
