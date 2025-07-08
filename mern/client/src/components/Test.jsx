@@ -4,7 +4,7 @@ const Test = () => {
   const [backendMessage, setBackendMessage] = useState("Connecting...");
 
   useEffect(() => {
-    fetch("http://localhost:5000/")
+    fetch("http://localhost:5050/")
       .then((res) => res.text())
       .then((data) => setBackendMessage(data))
       .catch((err) => {
