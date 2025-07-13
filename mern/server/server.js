@@ -6,8 +6,7 @@ import eventsRoutes from './routes/events.js';
 
 const mongoURI = process.env.MONGO_URI || 'your_mongo_connection_string_here';
 
-mongoose.connect(mongoURI, {
-  useNewUrlParser: true, useUnifiedTopology: true})
+mongoose.connect(mongoURI)
     .then(() => console.log('✅ MongoDB connected successfully'))
     .catch((error) => {
       console.error('❌ MongoDB connection error:', error);
