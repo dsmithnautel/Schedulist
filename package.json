@@ -1,5 +1,12 @@
 {
   "dependencies": {
-    "mongodb": "^6.17.0"
+    "@fullcalendar/daygrid": "^6.1.18",
+    "@fullcalendar/interaction": "^6.1.18",
+    "@fullcalendar/react": "^6.1.18",
+    "@fullcalendar/resource-timeline": "^6.1.18",
+    "fullcalendar": "^6.1.18",
+    "fullcalendar-scheduler": "^6.1.18",
+    "mongodb": "^6.17.0",
+    "react": "^19.1.0"
   }
 }

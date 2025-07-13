@@ -24,7 +24,7 @@ router.post('/signup', async (req, res) => {
         const newUser = await User.create({ username, password: hashedPassword });
 
         const token = jwt.sign({ id: newUser._id, username: newUser.username }, JWT_SECRET, { expiresIn: '1h' });
-        res.status(201).json({ token, user: { id: newUser._id, username: newUser.username } });
+        res.status(201).json({ token, user: { _id: newUser._id, username: newUser.username } });
     } catch (err) {
         res.status(500).json({ message: 'Signup failed' });
     }
@@ -46,7 +46,7 @@ router.post('/login', async (req, res) => {
         if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
 
         const token = jwt.sign({ id: user._id, username: user.username }, JWT_SECRET, { expiresIn: '1h' });
-        res.status(200).json({ token, user: { id: user._id, username: user.username } });
+        res.status(200).json({ token, user: { _id: user._id, username: user.username } });
     } catch (err) {
         res.status(500).json({ message: 'Login failed' });
     }

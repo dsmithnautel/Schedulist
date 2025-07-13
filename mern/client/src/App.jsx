@@ -8,6 +8,8 @@ import Dashboard from './pages/Dashboard.jsx';
 function App() {
     const [user, setUser] = useState(null);
 
+     console.log('Current user state:', user);
+
     return (
         <Routes>
             {/* Show Login at root path */}

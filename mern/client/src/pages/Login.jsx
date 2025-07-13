@@ -17,6 +17,8 @@ function Login({ setUser }) {
             });
 
             const data = await response.json();
+            console.log('Login response data:', data);
+
             if (response.ok) {
                 setUser(data.user);
                 navigate('/dashboard');
