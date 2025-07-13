@@ -26,7 +26,7 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
   const { userId, title, date, description } = req.body;
 
-  if (!userId || !title || !date) {
+  if (!userId || !title) {
     return res.status(400).json({ error: 'userId, title, and date are required' });
   }
 
