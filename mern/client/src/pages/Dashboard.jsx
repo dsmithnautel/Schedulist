@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Calendar from '../components/Calendar.jsx';
 import List from '../components/List.jsx';
 

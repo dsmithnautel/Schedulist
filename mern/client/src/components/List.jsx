@@ -130,7 +130,7 @@ const List = ({ user, events, setEvents }) => {
                 title="Delete event"
                 className="ml-2 text-sm text-white hover:text-red-300"
               >
-                🗑️
+                ✔️
               </button>
             </li>
           ))}
