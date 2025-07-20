@@ -22,6 +22,13 @@ const Calendar = ({ user, events, setEvents }) => {
     }
   };
 
+  // Normalize date to local midnight to avoid day-shift issues
+  const toLocalDateISO = (date) => {
+    const d = new Date(date);
+    const localDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    return localDate.toISOString();
+  };
+
   const handleDateClick = async (info) => {
     const title = prompt('Enter event title:');
     if (!title) return;
@@ -29,7 +36,7 @@ const Calendar = ({ user, events, setEvents }) => {
     const newEvent = {
       userId: user._id,
       title,
-      date: info.dateStr,
+      date: toLocalDateISO(info.date), // Normalize here
       description: '',
     };
 
@@ -49,7 +56,7 @@ const Calendar = ({ user, events, setEvents }) => {
 
   const handleEventDrop = async (info) => {
     const eventId = info.event.id;
-    const newDate = info.event.startStr;
+    const newDate = toLocalDateISO(info.event.start); // Normalize here too
 
     try {
       const res = await fetch(`http://localhost:5050/api/events/${eventId}`, {
@@ -71,7 +78,7 @@ const Calendar = ({ user, events, setEvents }) => {
 
   const handleEventReceive = async (info) => {
     const droppedEvent = info.event;
-    const newDate = droppedEvent.startStr;
+    const newDate = toLocalDateISO(droppedEvent.start); // Normalize here
 
     try {
       const res = await fetch(`http://localhost:5050/api/events/${droppedEvent.id}`, {
@@ -112,6 +119,11 @@ const Calendar = ({ user, events, setEvents }) => {
         eventReceive={handleEventReceive}
         timeZone="local"
         height="auto"
+
+        // Show events as full-width blocks without time "8p" prefix:
+        eventDisplay="block"
+
+        // Add description tooltip if exists
         eventDidMount={(info) => {
           if (info.event.extendedProps.description) {
             info.el.setAttribute('title', info.event.extendedProps.description);

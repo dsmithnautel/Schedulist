@@ -1,28 +1,71 @@
 import { useEffect, useRef } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import { Draggable as FullCalendarDraggable } from '@fullcalendar/interaction';
 
 const List = ({ user, events, setEvents }) => {
   const listRef = useRef(null);
+  const draggableRef = useRef(null);
 
+  // Initialize FullCalendar Draggable
   useEffect(() => {
-    // Optionally, you can add FullCalendar Draggable here if needed for calendar drag-out
-  }, []);
+    if (listRef.current) {
+      if (draggableRef.current) {
+        draggableRef.current.destroy();
+      }
+      draggableRef.current = new FullCalendarDraggable(listRef.current, {
+        itemSelector: '.fc-event',
+        eventData: (el) => ({
+          id: el.getAttribute('data-id'),
+          title: el.getAttribute('data-title'),
+          description: el.getAttribute('data-description'),
+        }),
+      });
+    }
+  }, [events]);
 
+  // Fetch events from backend
   const fetchEvents = async () => {
     try {
       const res = await fetch(`http://localhost:5050/api/events?userId=${user._id}`);
       const data = await res.json();
-      setEvents(
-        data.map(event => ({
-          id: event._id,
-          title: event.title,
-          date: event.date,
-          description: event.description,
-        }))
-      );
+      setEvents(data.map(event => ({
+        id: event._id,
+        title: event.title,
+        date: event.date,
+        description: event.description,
+        priority: event.priority,
+      })));
     } catch (err) {
       console.error('Failed to load events:', err);
     }
+  };
+
+  // Persist reordered list to backend
+  const persistOrder = async (orderedEvents) => {
+    try {
+      await fetch('http://localhost:5050/api/events/reorder', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user._id,
+          order: orderedEvents.map((e, idx) => ({ id: e.id, priority: idx })),
+        }),
+      });
+    } catch (err) {
+      console.error('Failed to persist order:', err);
+    }
+  };
+
+  const onDragEnd = (result) => {
+    if (!result.destination) return;
+    if (result.source.index === result.destination.index) return;
+
+    const reordered = Array.from(events);
+    const [removed] = reordered.splice(result.source.index, 1);
+    reordered.splice(result.destination.index, 0, removed);
+
+    setEvents(reordered);
+    persistOrder(reordered);
   };
 
   const handleCreate = async () => {
@@ -33,7 +76,7 @@ const List = ({ user, events, setEvents }) => {
       userId: user._id,
       title,
       description: '',
-      priority: events.length, // Set priority to end of list
+      priority: events.length,
     };
 
     try {
@@ -43,7 +86,10 @@ const List = ({ user, events, setEvents }) => {
         body: JSON.stringify(newEvent),
       });
       if (!res.ok) throw new Error('Failed to create event');
+
+      // After successful creation, refresh the list:
       await fetchEvents();
+
     } catch (err) {
       alert('Error creating event: ' + err.message);
     }
@@ -54,47 +100,11 @@ const List = ({ user, events, setEvents }) => {
       const res = await fetch(`http://localhost:5050/api/events/${eventId}`, {
         method: 'DELETE',
       });
-
       if (!res.ok) throw new Error('Failed to delete event');
-      setEvents(prev => prev.filter(e => e.id !== eventId));
+      setEvents((prev) => prev.filter((e) => e.id !== eventId));
     } catch (err) {
       alert('Error deleting event: ' + err.message);
     }
-  };
-
-  // Reorder helper
-  const reorder = (list, startIndex, endIndex) => {
-    const result = Array.from(list);
-    const [removed] = result.splice(startIndex, 1);
-    result.splice(endIndex, 0, removed);
-    return result;
-  };
-
-  // Persist order to backend
-  const persistOrder = async (orderedEvents) => {
-    try {
-      await fetch('http://localhost:5050/api/events/reorder', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: user._id,
-          order: orderedEvents.map((e, idx) => ({ id: e.id, priority: idx }))
-        }),
-      });
-    } catch (err) {
-      console.error('Failed to persist order:', err);
-    }
-  };
-
-  // Handle drag end
-  const onDragEnd = (result) => {
-    if (!result.destination) return;
-    if (result.source.index === result.destination.index) return;
-    setEvents(prev => {
-      const reordered = reorder(prev, result.source.index, result.destination.index);
-      persistOrder(reordered); // Save to backend
-      return reordered;
-    });
   };
 
   const formatDateLocal = (dateStr) => {
@@ -127,16 +137,17 @@ const List = ({ user, events, setEvents }) => {
           + Create Event
         </button>
       </div>
+
       {events.length === 0 ? (
-        <p className="text-center text-gray-500 py-4">No events found. Create an event!</p>
+        <p>Nothing to Do!</p>
       ) : (
         <DragDropContext onDragEnd={onDragEnd}>
           <Droppable droppableId="eventsList">
             {(provided) => (
               <ul
-                ref={provided.innerRef}
-                {...provided.droppableProps}
                 className="space-y-2"
+                {...provided.droppableProps}
+                ref={provided.innerRef}
               >
                 {events.map((event, index) => (
                   <Draggable key={event.id} draggableId={event.id} index={index}>
@@ -150,16 +161,17 @@ const List = ({ user, events, setEvents }) => {
                         data-title={event.title}
                         data-description={event.description}
                         style={{
-                          ...provided.draggableProps.style,
                           padding: '6px 10px',
                           backgroundColor: event.date ? '#94a3b8' : '#3788d8',
                           color: 'white',
                           borderRadius: '4px',
                           opacity: snapshot.isDragging ? 0.7 : 1,
+                          ...provided.draggableProps.style,
                         }}
                       >
                         <div>
-                          <strong>{event.title}</strong><br />
+                          <strong>{event.title}</strong>
+                          <br />
                           <small>{formatDateLocal(event.date)}</small>
                         </div>
                         <button
