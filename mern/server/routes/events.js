@@ -14,7 +14,7 @@ router.get('/', async (req, res) => {
   }
 
   try {
-    const events = await Event.find({ userId });
+    const events = await Event.find({ userId }).sort({ priority: 1 }); // 👈 This sorts by priority ascending
     res.json(events);
   } catch (error) {
     console.error('Error fetching events:', error);
@@ -49,7 +49,9 @@ router.post('/', async (req, res) => {
 // PATCH update an event
 router.patch('/:id', async (req, res) => {
   const { id } = req.params;
-  const { title, date, description } = req.body;
+  const { title, date, description, priority } = req.body;
+
+  console.log(`Received PATCH for event ${id}`, { title, date, description, priority }); // 👈 Log incoming data
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
     return res.status(400).json({ error: 'Invalid event ID' });
@@ -62,6 +64,7 @@ router.patch('/:id', async (req, res) => {
     if (title !== undefined) event.title = title;
     if (date !== undefined) event.date = date;
     if (description !== undefined) event.description = description;
+    if (priority !== undefined) event.priority = priority;
 
     const updated = await event.save();
     res.json(updated);
@@ -70,6 +73,7 @@ router.patch('/:id', async (req, res) => {
     res.status(500).json({ error: 'Failed to update event' });
   }
 });
+
 
 // DELETE event by ID
 router.delete('/:id', async (req, res) => {

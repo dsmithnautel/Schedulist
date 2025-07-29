@@ -28,45 +28,66 @@ const List = ({ user, events, setEvents }) => {
     try {
       const res = await fetch(`http://localhost:5050/api/events?userId=${user._id}`);
       const data = await res.json();
-      setEvents(data.map(event => ({
-        id: event._id,
-        title: event.title,
-        date: event.date,
-        description: event.description,
-        priority: event.priority,
-      })));
+      const sortedEvents = data
+        .map(event => ({
+          id: event._id,
+          title: event.title,
+          date: event.date,
+          description: event.description,
+          priority: event.priority,
+        }))
+        .sort((a, b) => a.priority - b.priority); // 👈 sort by priority ascending
+
+      setEvents(sortedEvents);
     } catch (err) {
       console.error('Failed to load events:', err);
     }
   };
 
+
   // Persist reordered list to backend
   const persistOrder = async (orderedEvents) => {
     try {
-      await fetch('http://localhost:5050/api/events/reorder', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: user._id,
-          order: orderedEvents.map((e, idx) => ({ id: e.id, priority: idx })),
-        }),
+      const updatePromises = orderedEvents.map((event, index) => {
+        console.log(`Updating event ${event.id} to priority ${index}`);
+
+        return fetch(`http://localhost:5050/api/events/${event.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: event.title,
+            date: event.date,
+            description: event.description,
+            priority: index, // <- updating priority here
+          }),
+        });
       });
+
+      await Promise.all(updatePromises);
+      console.log('All events updated successfully.');
     } catch (err) {
-      console.error('Failed to persist order:', err);
+      console.error('Failed to persist event order:', err);
     }
   };
 
+
+
   const onDragEnd = (result) => {
-    if (!result.destination) return;
-    if (result.source.index === result.destination.index) return;
+    const { destination, source } = result;
+
+    if (!destination || destination.index === source.index) return;
 
     const reordered = Array.from(events);
-    const [removed] = reordered.splice(result.source.index, 1);
-    reordered.splice(result.destination.index, 0, removed);
+    const [moved] = reordered.splice(source.index, 1);
+    reordered.splice(destination.index, 0, moved);
 
+    // Update local state
     setEvents(reordered);
+
+    // Persist new order
     persistOrder(reordered);
   };
+
 
   const handleCreate = async () => {
     const title = prompt('Enter event title:');
