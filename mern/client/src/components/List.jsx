@@ -36,14 +36,13 @@ const List = ({ user, events, setEvents }) => {
           description: event.description,
           priority: event.priority,
         }))
-        .sort((a, b) => a.priority - b.priority); // 👈 sort by priority ascending
+        .sort((a, b) => a.priority - b.priority);
 
       setEvents(sortedEvents);
     } catch (err) {
       console.error('Failed to load events:', err);
     }
   };
-
 
   // Persist reordered list to backend
   const persistOrder = async (orderedEvents) => {
@@ -58,7 +57,7 @@ const List = ({ user, events, setEvents }) => {
             title: event.title,
             date: event.date,
             description: event.description,
-            priority: index, // <- updating priority here
+            priority: index,
           }),
         });
       });
@@ -70,8 +69,6 @@ const List = ({ user, events, setEvents }) => {
     }
   };
 
-
-
   const onDragEnd = (result) => {
     const { destination, source } = result;
 
@@ -81,13 +78,9 @@ const List = ({ user, events, setEvents }) => {
     const [moved] = reordered.splice(source.index, 1);
     reordered.splice(destination.index, 0, moved);
 
-    // Update local state
     setEvents(reordered);
-
-    // Persist new order
     persistOrder(reordered);
   };
-
 
   const handleCreate = async () => {
     const title = prompt('Enter event title:');
@@ -97,7 +90,6 @@ const List = ({ user, events, setEvents }) => {
       userId: user._id,
       title,
       description: '',
-      priority: events.length,
     };
 
     try {
@@ -108,12 +100,14 @@ const List = ({ user, events, setEvents }) => {
       });
       if (!res.ok) throw new Error('Failed to create event');
 
-      // After successful creation, refresh the list:
       await fetchEvents();
-
     } catch (err) {
       alert('Error creating event: ' + err.message);
     }
+  };
+
+  const handleAutoSchedule = () => {
+    alert('Auto-Schedule clicked! Implement your logic here.');
   };
 
   const handleDelete = async (eventId) => {
@@ -147,16 +141,28 @@ const List = ({ user, events, setEvents }) => {
   return (
     <div
       ref={listRef}
-      style={{ flex: 1, maxHeight: '500px', overflowY: 'auto' }}
+      style={{
+        flex: 1,
+        height: '100vh',        // <-- FULL viewport height here
+        overflowY: 'auto',
+      }}
     >
       <div className="flex justify-between items-center mb-2">
         <h3 className="text-lg font-semibold">ToDo List</h3>
-        <button
-          onClick={handleCreate}
-          className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
-        >
-          + Create Event
-        </button>
+        <div className="flex space-x-2">
+          <button
+            onClick={handleAutoSchedule}
+            className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
+          >
+            Auto-Schedule
+          </button>
+          <button
+            onClick={handleCreate}
+            className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+          >
+            + Create Event
+          </button>
+        </div>
       </div>
 
       {events.length === 0 ? (

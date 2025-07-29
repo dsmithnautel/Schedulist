@@ -31,20 +31,41 @@ router.post('/', async (req, res) => {
   }
 
   try {
+    // Find the event with the highest priority for this user
+    const highestPriorityEvent = await Event.findOne({ userId })
+      .sort({ priority: -1 })
+      .exec();
+
+    const highestPriority = highestPriorityEvent ? highestPriorityEvent.priority : -1;
+
     const newEvent = new Event({
       userId,
       title,
       date,
       description: description || '',
+      priority: highestPriority + 1,
     });
 
     const savedEvent = await newEvent.save();
+
+    console.log('Created new event:', {
+      id: savedEvent._id,
+      userId: savedEvent.userId,
+      title: savedEvent.title,
+      date: savedEvent.date,
+      description: savedEvent.description,
+      priority: savedEvent.priority,
+    });
+
     res.status(201).json(savedEvent);
   } catch (error) {
     console.error('Error saving event:', error);
     res.status(500).json({ error: 'Failed to save event' });
   }
 });
+
+
+
 
 // PATCH update an event
 router.patch('/:id', async (req, res) => {
