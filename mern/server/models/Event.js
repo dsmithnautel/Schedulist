@@ -8,7 +8,8 @@ const eventSchema = new mongoose.Schema({
   },
   title: { type: String, required: true },
   date: { type: Date, default: null }, 
-  description: { type: String, default: '' },
+  duration: { type: Number, default: 0 }, // Duration in hours
+  details: { type: String, default: '' },
   priority: { type: Number, default: 0 }, 
 });
 

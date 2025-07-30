@@ -1,10 +1,14 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
+import EventForm from './EventForm';  // Make sure the path is correct
 
-const Calendar = ({ user, events, setEvents }) => {
+const Calendar = ({ user, events, setEvents, maxPriority }) => {
   const calendarRef = useRef(null);
+
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(null);
 
   const fetchEvents = async () => {
     try {
@@ -14,7 +18,8 @@ const Calendar = ({ user, events, setEvents }) => {
         id: event._id,
         title: event.title,
         date: event.date,
-        description: event.description,
+        details: event.details, // Use "details" per your updated model
+        priority: event.priority,
       }));
       setEvents(formatted);
     } catch (err) {
@@ -22,41 +27,32 @@ const Calendar = ({ user, events, setEvents }) => {
     }
   };
 
-  // Normalize date to local midnight to avoid day-shift issues
+  // Normalize date to local midnight ISO string
   const toLocalDateISO = (date) => {
     const d = new Date(date);
     const localDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
     return localDate.toISOString();
   };
 
-  const handleDateClick = async (info) => {
-    const title = prompt('Enter event title:');
-    if (!title) return;
+  const handleDateClick = (info) => {
+    setSelectedDate(toLocalDateISO(info.date)); // Set clicked date
+    setIsFormOpen(true);                        // Open EventForm popup
+  };
 
-    const newEvent = {
-      userId: user._id,
-      title,
-      date: toLocalDateISO(info.date), // Normalize here
-      description: '',
-    };
+  const handleFormSuccess = () => {
+    setIsFormOpen(false);
+    setSelectedDate(null);
+    fetchEvents();
+  };
 
-    try {
-      const res = await fetch('http://localhost:5050/api/events', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newEvent),
-      });
-
-      if (!res.ok) throw new Error('Failed to save event');
-      await fetchEvents();
-    } catch (err) {
-      alert('Error creating event: ' + err.message);
-    }
+  const handleFormCancel = () => {
+    setIsFormOpen(false);
+    setSelectedDate(null);
   };
 
   const handleEventDrop = async (info) => {
     const eventId = info.event.id;
-    const newDate = toLocalDateISO(info.event.start); // Normalize here too
+    const newDate = toLocalDateISO(info.event.start);
 
     try {
       const res = await fetch(`http://localhost:5050/api/events/${eventId}`, {
@@ -78,7 +74,7 @@ const Calendar = ({ user, events, setEvents }) => {
 
   const handleEventReceive = async (info) => {
     const droppedEvent = info.event;
-    const newDate = toLocalDateISO(droppedEvent.start); // Normalize here
+    const newDate = toLocalDateISO(droppedEvent.start);
 
     try {
       const res = await fetch(`http://localhost:5050/api/events/${droppedEvent.id}`, {
@@ -107,26 +103,33 @@ const Calendar = ({ user, events, setEvents }) => {
   return (
     <div style={{ flex: 2 }}>
       <h2 className="text-xl font-bold mb-4">Schedulist</h2>
+
+      {isFormOpen && (
+        <EventForm
+          userId={user._id}
+          onSuccess={handleFormSuccess}
+          onCancel={handleFormCancel}
+          maxPriority={maxPriority}
+          initialDate={selectedDate}
+        />
+      )}
+
       <FullCalendar
         ref={calendarRef}
         plugins={[dayGridPlugin, interactionPlugin]}
         initialView="dayGridMonth"
         editable={true}
         droppable={true}
-        events={events.filter(e => e.date)} // Only show events with a date
+        events={events.filter(e => e.date)} // Only events with date
         dateClick={handleDateClick}
         eventDrop={handleEventDrop}
         eventReceive={handleEventReceive}
         timeZone="local"
         height="auto"
-
-        // Show events as full-width blocks without time "8p" prefix:
         eventDisplay="block"
-
-        // Add description tooltip if exists
         eventDidMount={(info) => {
-          if (info.event.extendedProps.description) {
-            info.el.setAttribute('title', info.event.extendedProps.description);
+          if (info.event.extendedProps.details) {
+            info.el.setAttribute('title', info.event.extendedProps.details);
           }
         }}
       />

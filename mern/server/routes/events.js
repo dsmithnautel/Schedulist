@@ -14,7 +14,7 @@ router.get('/', async (req, res) => {
   }
 
   try {
-    const events = await Event.find({ userId }).sort({ priority: 1 }); // 👈 This sorts by priority ascending
+    const events = await Event.find({ userId }).sort({ priority: 1 });
     res.json(events);
   } catch (error) {
     console.error('Error fetching events:', error);
@@ -24,26 +24,28 @@ router.get('/', async (req, res) => {
 
 // POST create new event
 router.post('/', async (req, res) => {
-  const { userId, title, date, description } = req.body;
+  const { userId, title, date, details, priority } = req.body;
 
   if (!userId || !title) {
-    return res.status(400).json({ error: 'userId, title, and date are required' });
+    return res.status(400).json({ error: 'userId and title are required' });
   }
 
   try {
-    // Find the event with the highest priority for this user
     const highestPriorityEvent = await Event.findOne({ userId })
       .sort({ priority: -1 })
       .exec();
 
     const highestPriority = highestPriorityEvent ? highestPriorityEvent.priority : -1;
 
+    const eventPriority =
+      typeof priority === 'number' && priority >= 0 ? priority : highestPriority + 1;
+
     const newEvent = new Event({
       userId,
       title,
       date,
-      description: description || '',
-      priority: highestPriority + 1,
+      details: details || '',
+      priority: eventPriority,
     });
 
     const savedEvent = await newEvent.save();
@@ -53,7 +55,7 @@ router.post('/', async (req, res) => {
       userId: savedEvent.userId,
       title: savedEvent.title,
       date: savedEvent.date,
-      description: savedEvent.description,
+      details: savedEvent.details,
       priority: savedEvent.priority,
     });
 
@@ -64,15 +66,12 @@ router.post('/', async (req, res) => {
   }
 });
 
-
-
-
 // PATCH update an event
 router.patch('/:id', async (req, res) => {
   const { id } = req.params;
-  const { title, date, description, priority } = req.body;
+  const { title, date, details, priority } = req.body;
 
-  console.log(`Received PATCH for event ${id}`, { title, date, description, priority }); // 👈 Log incoming data
+  console.log(`Received PATCH for event ${id}`, { title, date, details, priority });
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
     return res.status(400).json({ error: 'Invalid event ID' });
@@ -84,7 +83,7 @@ router.patch('/:id', async (req, res) => {
 
     if (title !== undefined) event.title = title;
     if (date !== undefined) event.date = date;
-    if (description !== undefined) event.description = description;
+    if (details !== undefined) event.details = details;
     if (priority !== undefined) event.priority = priority;
 
     const updated = await event.save();
@@ -94,7 +93,6 @@ router.patch('/:id', async (req, res) => {
     res.status(500).json({ error: 'Failed to update event' });
   }
 });
-
 
 // DELETE event by ID
 router.delete('/:id', async (req, res) => {

@@ -1,10 +1,13 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Draggable as FullCalendarDraggable } from '@fullcalendar/interaction';
+import EventForm from './EventForm';
 
 const List = ({ user, events, setEvents }) => {
   const listRef = useRef(null);
   const draggableRef = useRef(null);
+
+  const [showForm, setShowForm] = useState(false);
 
   // Initialize FullCalendar Draggable
   useEffect(() => {
@@ -44,12 +47,9 @@ const List = ({ user, events, setEvents }) => {
     }
   };
 
-  // Persist reordered list to backend
   const persistOrder = async (orderedEvents) => {
     try {
       const updatePromises = orderedEvents.map((event, index) => {
-        console.log(`Updating event ${event.id} to priority ${index}`);
-
         return fetch(`http://localhost:5050/api/events/${event.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -71,7 +71,6 @@ const List = ({ user, events, setEvents }) => {
 
   const onDragEnd = (result) => {
     const { destination, source } = result;
-
     if (!destination || destination.index === source.index) return;
 
     const reordered = Array.from(events);
@@ -82,29 +81,12 @@ const List = ({ user, events, setEvents }) => {
     persistOrder(reordered);
   };
 
-  const handleCreate = async () => {
-    const title = prompt('Enter event title:');
-    if (!title) return;
-
-    const newEvent = {
-      userId: user._id,
-      title,
-      description: '',
-    };
-
-    try {
-      const res = await fetch('http://localhost:5050/api/events', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newEvent),
-      });
-      if (!res.ok) throw new Error('Failed to create event');
-
-      await fetchEvents();
-    } catch (err) {
-      alert('Error creating event: ' + err.message);
-    }
+  const handleCreateClick = () => setShowForm(true);
+  const handleFormSuccess = async () => {
+    setShowForm(false);
+    await fetchEvents();
   };
+  const handleFormCancel = () => setShowForm(false);
 
   const handleAutoSchedule = () => {
     alert('Auto-Schedule clicked! Implement your logic here.');
@@ -124,10 +106,8 @@ const List = ({ user, events, setEvents }) => {
 
   const formatDateLocal = (dateStr) => {
     if (!dateStr) return 'No date chosen';
-
     const dtUtc = new Date(dateStr);
     if (isNaN(dtUtc.getTime())) return 'No date chosen';
-
     const year = dtUtc.getUTCFullYear();
     const month = dtUtc.getUTCMonth() + 1;
     const day = dtUtc.getUTCDate();
@@ -138,14 +118,13 @@ const List = ({ user, events, setEvents }) => {
 
   if (!user?._id) return <p>User not loaded. Please log in again.</p>;
 
+  // Use -1 when no events exist, otherwise max priority found
+  const highestPriority = events.length === 0 ? -1 : Math.max(...events.map(e => e.priority ?? 0));
+
   return (
     <div
       ref={listRef}
-      style={{
-        flex: 1,
-        height: '100vh',        // <-- FULL viewport height here
-        overflowY: 'auto',
-      }}
+      style={{ flex: 1, height: '100vh', overflowY: 'auto' }}
     >
       <div className="flex justify-between items-center mb-2">
         <h3 className="text-lg font-semibold">ToDo List</h3>
@@ -157,13 +136,22 @@ const List = ({ user, events, setEvents }) => {
             Auto-Schedule
           </button>
           <button
-            onClick={handleCreate}
+            onClick={handleCreateClick}
             className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
           >
             + Create Event
           </button>
         </div>
       </div>
+
+      {showForm && (
+        <EventForm
+          userId={user._id}
+          onSuccess={handleFormSuccess}
+          onCancel={handleFormCancel}
+          maxPriority={highestPriority}
+        />
+      )}
 
       {events.length === 0 ? (
         <p>Nothing to Do!</p>
