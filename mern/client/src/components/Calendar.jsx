@@ -2,13 +2,16 @@ import { useEffect, useRef, useState } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import EventForm from './EventForm';  // Make sure the path is correct
+import EventForm from './EventForm';
 
-const Calendar = ({ user, events, setEvents, maxPriority }) => {
+const Calendar = ({ user, events, setEvents }) => {
   const calendarRef = useRef(null);
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
+
+  // Calculate maxPriority dynamically from events
+  const maxPriority = events.length === 0 ? -1 : Math.max(...events.map(e => e.priority ?? 0));
 
   const fetchEvents = async () => {
     try {
@@ -18,7 +21,7 @@ const Calendar = ({ user, events, setEvents, maxPriority }) => {
         id: event._id,
         title: event.title,
         date: event.date,
-        details: event.details, // Use "details" per your updated model
+        details: event.details,
         priority: event.priority,
       }));
       setEvents(formatted);
@@ -27,16 +30,16 @@ const Calendar = ({ user, events, setEvents, maxPriority }) => {
     }
   };
 
-  // Normalize date to local midnight ISO string
   const toLocalDateISO = (date) => {
     const d = new Date(date);
     const localDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
     return localDate.toISOString();
   };
 
+  // When a date is clicked, open EventForm and pass the clicked date as initialDate
   const handleDateClick = (info) => {
-    setSelectedDate(toLocalDateISO(info.date)); // Set clicked date
-    setIsFormOpen(true);                        // Open EventForm popup
+    setSelectedDate(toLocalDateISO(info.date));
+    setIsFormOpen(true);
   };
 
   const handleFormSuccess = () => {
@@ -64,7 +67,7 @@ const Calendar = ({ user, events, setEvents, maxPriority }) => {
       if (!res.ok) throw new Error('Failed to update event');
 
       setEvents(prev =>
-        prev.map(e => e.id === eventId ? { ...e, date: newDate } : e)
+        prev.map(e => (e.id === eventId ? { ...e, date: newDate } : e))
       );
     } catch (err) {
       alert('Error updating event: ' + err.message);
@@ -86,7 +89,7 @@ const Calendar = ({ user, events, setEvents, maxPriority }) => {
       if (!res.ok) throw new Error('Failed to update dropped event');
 
       setEvents(prev =>
-        prev.map(e => e.id === droppedEvent.id ? { ...e, date: newDate } : e)
+        prev.map(e => (e.id === droppedEvent.id ? { ...e, date: newDate } : e))
       );
     } catch (err) {
       alert('Error saving dropped event: ' + err.message);

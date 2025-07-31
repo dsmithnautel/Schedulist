@@ -9,7 +9,6 @@ const List = ({ user, events, setEvents }) => {
 
   const [showForm, setShowForm] = useState(false);
 
-  // Initialize FullCalendar Draggable
   useEffect(() => {
     if (listRef.current) {
       if (draggableRef.current) {
@@ -26,7 +25,6 @@ const List = ({ user, events, setEvents }) => {
     }
   }, [events]);
 
-  // Fetch events from backend
   const fetchEvents = async () => {
     try {
       const res = await fetch(`http://localhost:5050/api/events?userId=${user._id}`);
@@ -104,21 +102,28 @@ const List = ({ user, events, setEvents }) => {
     }
   };
 
+  // Format date to local time with 12-hour format and AM/PM
   const formatDateLocal = (dateStr) => {
     if (!dateStr) return 'No date chosen';
-    const dtUtc = new Date(dateStr);
-    if (isNaN(dtUtc.getTime())) return 'No date chosen';
-    const year = dtUtc.getUTCFullYear();
-    const month = dtUtc.getUTCMonth() + 1;
-    const day = dtUtc.getUTCDate();
-    const hours = dtUtc.getUTCHours().toString().padStart(2, '0');
-    const minutes = dtUtc.getUTCMinutes().toString().padStart(2, '0');
-    return `${month}/${day}/${year} ${hours}:${minutes}`;
+    const dt = new Date(dateStr);
+    if (isNaN(dt.getTime())) return 'No date chosen';
+
+    const year = dt.getFullYear();
+    const month = dt.getMonth() + 1;
+    const day = dt.getDate();
+
+    let hours = dt.getHours();
+    const minutes = dt.getMinutes().toString().padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+
+    hours = hours % 12;
+    hours = hours === 0 ? 12 : hours; // Convert 0 to 12 for 12 AM/PM format
+
+    return `${month}/${day}/${year} ${hours}:${minutes} ${ampm}`;
   };
 
   if (!user?._id) return <p>User not loaded. Please log in again.</p>;
 
-  // Use -1 when no events exist, otherwise max priority found
   const highestPriority = events.length === 0 ? -1 : Math.max(...events.map(e => e.priority ?? 0));
 
   return (
