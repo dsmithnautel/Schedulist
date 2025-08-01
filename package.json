@@ -7,7 +7,7 @@
     "start": "cd mern/server && npm start",
     "dev": "cd mern/client && npm run dev",
     "lint": "cd mern/server && npm run lint",
-    "test": "cd mern/server && npm test"
+    "test": "cd mern/server && npm test && cd ../client && npm test"
   },
   "keywords": [],
   "author": "",
