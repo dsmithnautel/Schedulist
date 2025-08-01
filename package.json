@@ -1,0 +1,14 @@
+{
+  "name": "schedulist",
+  "version": "1.0.0",
+  "description": "Schedulist - Event Management Application",
+  "scripts": {
+    "install-all": "npm install && cd client && npm install && cd ../server && npm install",
+    "start": "cd server && npm start",
+    "start-client": "cd client && npm run dev",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

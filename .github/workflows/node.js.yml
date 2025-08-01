@@ -36,11 +36,8 @@ jobs:
         with:
           mongodb-version: ${{ matrix.mongodb-version }}
 
-      - name: Install dependencies (server)
-        run: npm install
-
-      - name: Install dependencies (client)
-        run: cd client && npm install
+      - name: Install Dependencies
+        run: npm run install-all
 
       - name: Create config.env
         run: |
