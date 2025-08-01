@@ -5,3 +5,43 @@
 .fc-event-time {
   display: none !important;
 }
+
+.signup-container {
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.password-requirements {
+  margin-top: 10px;
+  font-size: 0.9em;
+}
+
+.error-list {
+  list-style: none;
+  padding-left: 0;
+  color: #dc3545;
+}
+
+.error-item {
+  margin-bottom: 5px;
+}
+
+.valid-password {
+  color: #28a745;
+}
+
+button[type="submit"]:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+input {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 10px;
+}

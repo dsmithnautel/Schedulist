@@ -5,8 +5,38 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 
-
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key';
+
+// Password validation function
+const validatePassword = (password) => {
+    const minLength = 8;
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumbers = /\d/.test(password);
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+    const errors = [];
+    if (password.length < minLength) {
+        errors.push(`Password must be at least ${minLength} characters long`);
+    }
+    if (!hasUpperCase) {
+        errors.push('Password must contain at least one uppercase letter');
+    }
+    if (!hasLowerCase) {
+        errors.push('Password must contain at least one lowercase letter');
+    }
+    if (!hasNumbers) {
+        errors.push('Password must contain at least one number');
+    }
+    if (!hasSpecialChar) {
+        errors.push('Password must contain at least one special character');
+    }
+
+    return {
+        isValid: errors.length === 0,
+        errors
+    };
+};
 
 // Signup
 router.post('/signup', async (req, res) => {
@@ -15,8 +45,16 @@ router.post('/signup', async (req, res) => {
         return res.status(400).json({ message: 'Username and password are required' });
     }
 
-    try {
+    // Password validation
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.isValid) {
+        return res.status(400).json({ 
+            message: 'Password requirements not met',
+            errors: passwordValidation.errors 
+        });
+    }
 
+    try {
         const existingUser = await User.findOne({ username });
         if (existingUser) return res.status(400).json({ message: 'Username already exists' });
 
@@ -30,7 +68,6 @@ router.post('/signup', async (req, res) => {
     }
 });
 
-// Login
 router.post('/login', async (req, res) => {
     const { username, password } = req.body;
     if (!username || !password) {
@@ -38,7 +75,6 @@ router.post('/login', async (req, res) => {
     }
 
     try {
-
         const user = await User.findOne({ username });
         if (!user) return res.status(400).json({ message: 'Invalid credentials' });
 
