@@ -1,4 +1,11 @@
-import DOMPurify from 'dompurify';
+import createDOMPurify from 'dompurify';
+import { JSDOM } from 'jsdom';
+
+// Create a fake window using jsdom
+const window = new JSDOM('').window;
+
+// Create a DOMPurify instance bound to the fake window
+const DOMPurify = createDOMPurify(window);
 
 export const sanitizeInput = (input) => {
     if (typeof input === 'string') {
