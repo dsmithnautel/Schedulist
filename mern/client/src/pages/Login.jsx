@@ -8,6 +8,10 @@ function Login({ setUser }) {
     const navigate = useNavigate();
 
     async function handleLogin(e) {
+        const handleError = (error, message) => {
+            alert(message || 'An error occurred');
+        };
+
         e.preventDefault();
         try {
             const response = await fetch('http://localhost:5050/api/auth/login', {
@@ -17,7 +21,6 @@ function Login({ setUser }) {
             });
 
             const data = await response.json();
-            console.log('Login response data:', data);
 
             if (response.ok) {
                 setUser(data.user);
@@ -27,7 +30,7 @@ function Login({ setUser }) {
             }
         } catch (err) {
             alert('Network error. Please try again.');
-            console.error(err);
+            handleError(err, 'Network Error. Please try again.');
         }
     }
 

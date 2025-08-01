@@ -34,6 +34,10 @@ const List = ({ user, events, setEvents }) => {
   }, [events]);
 
   const fetchEvents = useCallback(async () => {
+    const handleError = (error, message) => {
+      alert(message || 'An error occurred');
+    };
+
     if (!user?._id) return;
 
     try {
@@ -53,7 +57,7 @@ const List = ({ user, events, setEvents }) => {
 
       setEvents(sortedEvents);
     } catch (err) {
-      console.error('Failed to load events:', err);
+      handleError(err, 'Failed to load events. Please try again.');
       alert('Failed to load events. Please try again.');
     }
   }, [user, setEvents]);

@@ -9,6 +9,10 @@ const Calendar = ({ user, events, setEvents }) => {
   const calendarRef = useRef(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
+  const handleError = (error, message) => {
+    alert(message || 'An error occurred');
+  };
+
 
   // Calculate maxPriority safely with null check
   const maxPriority = events?.length === 0 ? -1 : Math.max(...events.filter(e => e.priority !== undefined && e.priority !== null).map(e => e.priority), -1);
@@ -31,7 +35,7 @@ const Calendar = ({ user, events, setEvents }) => {
       }));
       setEvents(formatted);
     } catch (err) {
-      console.error('Failed to load events:', err);
+      handleError(err, 'Failed to load events. Please try again.');
     }
   }, [user, setEvents]);
 
