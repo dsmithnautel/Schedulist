@@ -1,5 +1,3 @@
-# This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
 
 name: Node.js CI
 
@@ -10,22 +8,55 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build:
-
+  test:
     runs-on: ubuntu-latest
+
+    env:
+      MONGODB_URI: mongodb://localhost:27017/test
+      JWT_SECRET: test-secret-key-for-ci-only
+      PORT: 5050
 
     strategy:
       matrix:
-        node-version: [18.x, 20.x, 22.x]
-        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
+        node-version: [18.x, 20.x]
+        mongodb-version: ['6.0']
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-    - run: npm ci
-    - run: npm run build --if-present
-    - run: npm test
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: '**/package-lock.json'
+
+      - name: Start MongoDB
+        uses: supercharge/mongodb-github-action@1.10.0
+        with:
+          mongodb-version: ${{ matrix.mongodb-version }}
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          cd client && npm ci
+
+      - name: Create config.env
+        run: |
+          echo "MONGODB_URI=${{ env.MONGODB_URI }}" > config.env
+          echo "JWT_SECRET=${{ env.JWT_SECRET }}" >> config.env
+          echo "PORT=${{ env.PORT }}" >> config.env
+
+      - name: Lint
+        run: |
+          npm run lint --if-present
+          cd client && npm run lint --if-present
+
+      - name: Build
+        run: |
+          cd client && npm run build
+
+      - name: Test
+        run: |
+          npm test --if-present
+          cd client && npm test --if-present
