@@ -7,7 +7,7 @@
     "start": "cd mern/server && npm start",
     "dev": "cd mern/client && npm run dev",
     "lint": "cd mern/server && npm run lint",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "cd mern/server && npm test"
   },
   "keywords": [],
   "author": "",
