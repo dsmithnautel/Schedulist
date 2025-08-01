@@ -1,10 +1,10 @@
-
 module.exports = {
   root: true,
   env: {
     browser: true,
     es2020: true,
-    node: true
+    'cypress/globals': true,
+    node: true  // Add this for Cypress plugins
   },
   extends: [
     'eslint:recommended',
@@ -22,19 +22,24 @@ module.exports = {
       version: '18.2'
     }
   },
-  plugins: ['react-refresh'],
+  plugins: [
+    'react-refresh',
+    'cypress'
+  ],
   rules: {
     'react-refresh/only-export-components': [
       'warn',
       { allowConstantExport: true },
     ],
-    'no-unused-vars': ['warn', {
-      'argsIgnorePattern': '^_',
-      'varsIgnorePattern': '^_'
-    }],
-    'react/prop-types': 'warn',
-    'no-console': ['warn', {
-      allow: ['warn', 'error']
-    }]
-  }
-};
+    'no-console': ['error', { allow: ['warn', 'error'] }]  // Updated console rule
+  },
+  overrides: [
+    {
+      files: ['cypress/**/*.js'],
+      env: {
+        'cypress/globals': true,
+        node: true
+      }
+    }
+  ]
+}
