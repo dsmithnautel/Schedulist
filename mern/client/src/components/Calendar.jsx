@@ -1,30 +1,21 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import PropTypes from 'prop-types';
 import EventForm from './EventForm';
 
 const Calendar = ({ user, events, setEvents }) => {
   const calendarRef = useRef(null);
+
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
-  const handleError = (error, message) => {
-    alert(message || 'An error occurred');
-  };
 
+  // Calculate maxPriority dynamically from events
+  const maxPriority = events.length === 0 ? -1 : Math.max(...events.map(e => e.priority ?? 0));
 
-  // Calculate maxPriority safely with null check
-  const maxPriority = events?.length === 0 ? -1 : Math.max(...events.filter(e => e.priority !== undefined && e.priority !== null).map(e => e.priority), -1);
-
-  const fetchEvents = useCallback(async () => {
-    if (!user?._id) return;
-
+  const fetchEvents = async () => {
     try {
       const res = await fetch(`http://localhost:5050/api/events?userId=${user._id}`);
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
       const data = await res.json();
       const formatted = data.map(event => ({
         id: event._id,
@@ -35,9 +26,9 @@ const Calendar = ({ user, events, setEvents }) => {
       }));
       setEvents(formatted);
     } catch (err) {
-      handleError(err, 'Failed to load events. Please try again.');
+      console.error('Failed to load events:', err);
     }
-  }, [user, setEvents]);
+  };
 
   const toLocalDateISO = (date) => {
     const d = new Date(date);
@@ -45,6 +36,7 @@ const Calendar = ({ user, events, setEvents }) => {
     return localDate.toISOString();
   };
 
+  // When a date is clicked, open EventForm and pass the clicked date as initialDate
   const handleDateClick = (info) => {
     setSelectedDate(toLocalDateISO(info.date));
     setIsFormOpen(true);
@@ -106,12 +98,10 @@ const Calendar = ({ user, events, setEvents }) => {
   };
 
   useEffect(() => {
-    fetchEvents();
-  }, [fetchEvents]);
-
-  if (!user?._id) {
-    return <div>Please log in to view your calendar.</div>;
-  }
+    if (user?._id) {
+      fetchEvents();
+    }
+  }, [user]);
 
   return (
       <div style={{ flex: 2 }}>
@@ -133,7 +123,7 @@ const Calendar = ({ user, events, setEvents }) => {
             initialView="dayGridMonth"
             editable={true}
             droppable={true}
-            events={events?.filter(e => e?.date) || []} // Safer filter with null checks
+            events={events.filter(e => e.date)} // Only events with date
             dateClick={handleDateClick}
             eventDrop={handleEventDrop}
             eventReceive={handleEventReceive}
@@ -148,20 +138,6 @@ const Calendar = ({ user, events, setEvents }) => {
         />
       </div>
   );
-};
-
-Calendar.propTypes = {
-  user: PropTypes.shape({
-    _id: PropTypes.string.isRequired,
-  }),
-  events: PropTypes.arrayOf(PropTypes.shape({
-    id: PropTypes.string.isRequired,
-    title: PropTypes.string.isRequired,
-    date: PropTypes.string,
-    details: PropTypes.string,
-    priority: PropTypes.number,
-  })).isRequired,
-  setEvents: PropTypes.func.isRequired,
 };
 
 export default Calendar;

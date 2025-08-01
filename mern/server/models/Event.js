@@ -7,10 +7,10 @@ const eventSchema = new mongoose.Schema({
         required: true,
     },
     title: { type: String, required: true },
-    date: { type: Date, default: null }, 
+    date: { type: Date, default: null },
     duration: { type: Number, default: 0 }, // Duration in hours
     details: { type: String, default: '' },
-    priority: { type: Number, default: 0 }, 
+    priority: { type: Number, default: 0 },
 });
 
 export default mongoose.model('Event', eventSchema);

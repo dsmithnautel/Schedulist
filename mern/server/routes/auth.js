@@ -48,9 +48,9 @@ router.post('/signup', async (req, res) => {
     // Password validation
     const passwordValidation = validatePassword(password);
     if (!passwordValidation.isValid) {
-        return res.status(400).json({ 
+        return res.status(400).json({
             message: 'Password requirements not met',
-            errors: passwordValidation.errors 
+            errors: passwordValidation.errors
         });
     }
 
