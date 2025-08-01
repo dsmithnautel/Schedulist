@@ -6,7 +6,7 @@
     "install-all": "npm install && cd mern/client && npm install && cd ../server && npm install",
     "start": "cd mern/server && npm start",
     "dev": "cd mern/client && npm run dev",
-    "lint": "cd mern/server && npm run lint && cd ../../mern/client && npm run lint",
+    "lint": "cd mern/server && npm run lint && cd ../client && npm run lint",
     "lint:server": "cd mern/server && npm run lint",
     "lint:client": "cd mern/client && npm run lint",
     "test": "echo \"Error: no test specified\" && exit 1"
