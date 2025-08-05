@@ -10,14 +10,16 @@ const Calendar = ({ user, events, setEvents }) => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
 
-  // Calculate maxPriority dynamically from events
-  const maxPriority = events.length === 0 ? -1 : Math.max(...events.map(e => e.priority ?? 0));
+  const maxPriority =
+    events.length === 0 ? -1 : Math.max(...events.map((e) => e.priority ?? 0));
 
   const fetchEvents = async () => {
     try {
-      const res = await fetch(`http://localhost:5050/api/events?userId=${user._id}`);
+      const res = await fetch(
+        `http://localhost:5050/api/events?userId=${user._id}`
+      );
       const data = await res.json();
-      const formatted = data.map(event => ({
+      const formatted = data.map((event) => ({
         id: event._id,
         title: event.title,
         date: event.date,
@@ -30,15 +32,19 @@ const Calendar = ({ user, events, setEvents }) => {
     }
   };
 
-  const toLocalDateISO = (date) => {
-    const d = new Date(date);
-    const localDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-    return localDate.toISOString();
+  const formatDateForInput = (date) => {
+    const local = new Date(date);
+    const yyyy = local.getFullYear();
+    const mm = String(local.getMonth() + 1).padStart(2, '0');
+    const dd = String(local.getDate()).padStart(2, '0');
+    const hh = String(local.getHours()).padStart(2, '0');
+    const mi = String(local.getMinutes()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
   };
 
-  // When a date is clicked, open EventForm and pass the clicked date as initialDate
   const handleDateClick = (info) => {
-    setSelectedDate(toLocalDateISO(info.date));
+    const formatted = formatDateForInput(info.date);
+    setSelectedDate(formatted);
     setIsFormOpen(true);
   };
 
@@ -51,6 +57,12 @@ const Calendar = ({ user, events, setEvents }) => {
   const handleFormCancel = () => {
     setIsFormOpen(false);
     setSelectedDate(null);
+  };
+
+  const toLocalDateISO = (date) => {
+    const d = new Date(date);
+    const localDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    return localDate.toISOString();
   };
 
   const handleEventDrop = async (info) => {
@@ -66,8 +78,8 @@ const Calendar = ({ user, events, setEvents }) => {
 
       if (!res.ok) throw new Error('Failed to update event');
 
-      setEvents(prev =>
-          prev.map(e => (e.id === eventId ? { ...e, date: newDate } : e))
+      setEvents((prev) =>
+        prev.map((e) => (e.id === eventId ? { ...e, date: newDate } : e))
       );
     } catch (err) {
       alert('Error updating event: ' + err.message);
@@ -80,16 +92,21 @@ const Calendar = ({ user, events, setEvents }) => {
     const newDate = toLocalDateISO(droppedEvent.start);
 
     try {
-      const res = await fetch(`http://localhost:5050/api/events/${droppedEvent.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date: newDate }),
-      });
+      const res = await fetch(
+        `http://localhost:5050/api/events/${droppedEvent.id}`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ date: newDate }),
+        }
+      );
 
       if (!res.ok) throw new Error('Failed to update dropped event');
 
-      setEvents(prev =>
-          prev.map(e => (e.id === droppedEvent.id ? { ...e, date: newDate } : e))
+      setEvents((prev) =>
+        prev.map((e) =>
+          e.id === droppedEvent.id ? { ...e, date: newDate } : e
+        )
       );
     } catch (err) {
       alert('Error saving dropped event: ' + err.message);
@@ -104,39 +121,39 @@ const Calendar = ({ user, events, setEvents }) => {
   }, [user]);
 
   return (
-      <div style={{ flex: 2 }}>
-        <h2 className="text-xl font-bold mb-4">Schedulist</h2>
+    <div style={{ flex: 2 }}>
+      <h2 className="text-xl font-bold mb-4">Schedulist</h2>
 
-        {isFormOpen && (
-            <EventForm
-                userId={user._id}
-                onSuccess={handleFormSuccess}
-                onCancel={handleFormCancel}
-                maxPriority={maxPriority}
-                initialDate={selectedDate}
-            />
-        )}
-
-        <FullCalendar
-            ref={calendarRef}
-            plugins={[dayGridPlugin, interactionPlugin]}
-            initialView="dayGridMonth"
-            editable={true}
-            droppable={true}
-            events={events.filter(e => e.date)} // Only events with date
-            dateClick={handleDateClick}
-            eventDrop={handleEventDrop}
-            eventReceive={handleEventReceive}
-            timeZone="local"
-            height="auto"
-            eventDisplay="block"
-            eventDidMount={(info) => {
-              if (info.event.extendedProps.details) {
-                info.el.setAttribute('title', info.event.extendedProps.details);
-              }
-            }}
+      {isFormOpen && (
+        <EventForm
+          userId={user._id}
+          onSuccess={handleFormSuccess}
+          onCancel={handleFormCancel}
+          maxPriority={maxPriority}
+          initialDate={selectedDate}
         />
-      </div>
+      )}
+
+      <FullCalendar
+        ref={calendarRef}
+        plugins={[dayGridPlugin, interactionPlugin]}
+        initialView="dayGridMonth"
+        editable={true}
+        droppable={true}
+        events={events.filter((e) => e.date)}
+        dateClick={handleDateClick}
+        eventDrop={handleEventDrop}
+        eventReceive={handleEventReceive}
+        timeZone="local"
+        height="auto"
+        eventDisplay="block"
+        eventDidMount={(info) => {
+          if (info.event.extendedProps.details) {
+            info.el.setAttribute('title', info.event.extendedProps.details);
+          }
+        }}
+      />
+    </div>
   );
 };
 
