@@ -3,13 +3,32 @@ import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 
 const EventForm = ({ userId, onSuccess, onCancel, maxPriority, initialDate, eventToEdit }) => {
+  // Helper function to format date for input field (same as Calendar component)
+  const formatDateForInput = (date) => {
+    const local = new Date(date);
+    const yyyy = local.getFullYear();
+    const mm = String(local.getMonth() + 1).padStart(2, '0');
+    const dd = String(local.getDate()).padStart(2, '0');
+    const hh = String(local.getHours()).padStart(2, '0');
+    const mi = String(local.getMinutes()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
+  };
+
   const [form, setForm] = useState({
     title: eventToEdit?.title || '',
-    date: eventToEdit?.date ? new Date(eventToEdit.date).toISOString().slice(0, 16) : (initialDate || ''),
+    date: eventToEdit?.date ? formatDateForInput(eventToEdit.date) : (initialDate || ''),
     duration: eventToEdit?.duration || '',
     details: eventToEdit?.details || '',
     priority: eventToEdit?.priority || (maxPriority === -1 ? 0 : maxPriority + 1),
   });
+
+  // Debug logging
+  useEffect(() => {
+    if (eventToEdit?.date) {
+      console.log('EventForm - Original date:', eventToEdit.date);
+      console.log('EventForm - Formatted date:', formatDateForInput(eventToEdit.date));
+    }
+  }, [eventToEdit]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -24,7 +43,7 @@ const EventForm = ({ userId, onSuccess, onCancel, maxPriority, initialDate, even
 
   useEffect(() => {
     if (initialDate && !eventToEdit) {
-      setForm((prev) => ({ ...prev, date: initialDate }));
+      setForm((prev) => ({ ...prev, date: formatDateForInput(initialDate) }));
     }
   }, [initialDate, eventToEdit]);
 

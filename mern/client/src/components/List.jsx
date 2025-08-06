@@ -43,6 +43,7 @@ const List = ({ user, events, setEvents }) => {
           }))
           .sort((a, b) => a.priority - b.priority);
 
+      console.log('Fetched events with dates:', sortedEvents.map(e => ({ title: e.title, date: e.date })));
       setEvents(sortedEvents);
     } catch (err) {
       console.error('Failed to load events:', err);
