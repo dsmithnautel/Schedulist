@@ -2,12 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Draggable as FullCalendarDraggable } from '@fullcalendar/interaction';
 import EventForm from './EventForm';
+import AutoScheduleForm from './AutoScheduleForm';
 
 const List = ({ user, events, setEvents }) => {
   const listRef = useRef(null);
   const draggableRef = useRef(null);
 
   const [showForm, setShowForm] = useState(false);
+  const [showAutoScheduleForm, setShowAutoScheduleForm] = useState(false);
 
   useEffect(() => {
     if (listRef.current) {
@@ -87,7 +89,61 @@ const List = ({ user, events, setEvents }) => {
   const handleFormCancel = () => setShowForm(false);
 
   const handleAutoSchedule = () => {
-    alert('Auto-Schedule clicked! Implement your logic here.');
+    if (events.length === 0) {
+      alert('No events to schedule!');
+      return;
+    }
+    setShowAutoScheduleForm(true);
+  };
+
+  const handleAutoScheduleSubmit = async (startDateTime) => {
+    try {
+      const updatePromises = events.map(async (event, index) => {
+        // Calculate the date for this event
+        const eventDate = new Date(startDateTime);
+        
+        // Add days based on index (first event on start date, second tomorrow, etc.)
+        eventDate.setDate(startDateTime.getDate() + Math.floor(index / 3)); // 3 events per day
+        
+        // Set time based on position within the day (9 AM, 2 PM, 7 PM)
+        const timeSlot = index % 3;
+        const hours = [9, 14, 19][timeSlot]; // 9 AM, 2 PM, 7 PM
+        eventDate.setHours(hours, 0, 0, 0);
+
+        // Update the event with the new date
+        const res = await fetch(`http://localhost:5050/api/events/${event.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: event.title,
+            date: eventDate.toISOString(),
+            details: event.description || '',
+            priority: event.priority,
+          }),
+        });
+
+        if (!res.ok) {
+          throw new Error(`Failed to update event ${event.title}`);
+        }
+
+        return res.json();
+      });
+
+      await Promise.all(updatePromises);
+      
+      // Refresh the events list to show the new dates
+      await fetchEvents();
+      
+      setShowAutoScheduleForm(false);
+      alert(`Successfully scheduled ${events.length} events starting from ${startDateTime.toLocaleDateString()}!`);
+    } catch (err) {
+      console.error('Auto-schedule error:', err);
+      alert('Error auto-scheduling events: ' + err.message);
+    }
+  };
+
+  const handleAutoScheduleCancel = () => {
+    setShowAutoScheduleForm(false);
   };
 
   const handleDelete = async (eventId) => {
@@ -155,6 +211,14 @@ const List = ({ user, events, setEvents }) => {
                 onSuccess={handleFormSuccess}
                 onCancel={handleFormCancel}
                 maxPriority={highestPriority}
+            />
+        )}
+
+        {showAutoScheduleForm && (
+            <AutoScheduleForm
+                onSchedule={handleAutoScheduleSubmit}
+                onCancel={handleAutoScheduleCancel}
+                eventCount={events.length}
             />
         )}
 
