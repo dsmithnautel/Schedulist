@@ -183,6 +183,23 @@ const Calendar = ({ user, events, setEvents }) => {
         timeZone="local"
         height="auto"
         eventDisplay="block"
+        eventContent={(arg) => {
+          const event = arg.event;
+          const startTime = event.start;
+          const timeString = startTime.toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+          });
+          
+          return {
+            html: `<div style="padding: 2px 4px;">
+              <strong>${event.title}</strong>
+              <br>
+              <small style="font-size: 0.8em;">${timeString}</small>
+            </div>`
+          };
+        }}
         eventDidMount={(info) => {
           if (info.event.extendedProps.details) {
             info.el.setAttribute('title', info.event.extendedProps.details);

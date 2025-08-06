@@ -37,7 +37,8 @@ const List = ({ user, events, setEvents }) => {
             id: event._id,
             title: event.title,
             date: event.date,
-            description: event.description,
+            description: event.details,
+            duration: event.duration,
             priority: event.priority,
           }))
           .sort((a, b) => a.priority - b.priority);
@@ -57,8 +58,9 @@ const List = ({ user, events, setEvents }) => {
           body: JSON.stringify({
             title: event.title,
             date: event.date,
-            description: event.description,
+            details: event.description,
             priority: index,
+            duration: event.duration,
           }),
         });
       });
@@ -99,17 +101,32 @@ const List = ({ user, events, setEvents }) => {
 
   const handleAutoScheduleSubmit = async (startDateTime) => {
     try {
-      const updatePromises = events.map(async (event, index) => {
-        // Calculate the date for this event
-        const eventDate = new Date(startDateTime);
+      // Get all existing scheduled events to check for conflicts
+      const existingEventsRes = await fetch(`http://localhost:5050/api/events?userId=${user._id}`);
+      const existingEvents = await existingEventsRes.json();
+      const scheduledEvents = existingEvents.filter(e => e.date).map(e => ({
+        start: new Date(e.date),
+        end: new Date(new Date(e.date).getTime() + (e.duration || 0) * 60 * 60 * 1000),
+        duration: e.duration || 0
+      }));
+
+      let currentTime = new Date(startDateTime);
+      const updatePromises = events.map(async (event) => {
+        const eventDuration = event.duration || 0; // Default 0 hours (no duration)
+        const eventDurationMs = eventDuration * 60 * 60 * 1000;
+
+        // Find the next available time slot starting from current time
+        let scheduledTime = findNextAvailableTime(currentTime, scheduledEvents, eventDurationMs);
         
-        // Add days based on index (first event on start date, second tomorrow, etc.)
-        eventDate.setDate(startDateTime.getDate() + Math.floor(index / 3)); // 3 events per day
-        
-        // Set time based on position within the day (9 AM, 2 PM, 7 PM)
-        const timeSlot = index % 3;
-        const hours = [9, 14, 19][timeSlot]; // 9 AM, 2 PM, 7 PM
-        eventDate.setHours(hours, 0, 0, 0);
+        // Add this event to the scheduled events for future conflict checking
+        scheduledEvents.push({
+          start: scheduledTime,
+          end: new Date(scheduledTime.getTime() + eventDurationMs),
+          duration: eventDuration
+        });
+
+        // Update current time to the end of this event for the next event
+        currentTime = new Date(scheduledTime.getTime() + eventDurationMs);
 
         // Update the event with the new date
         const res = await fetch(`http://localhost:5050/api/events/${event.id}`, {
@@ -117,9 +134,10 @@ const List = ({ user, events, setEvents }) => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             title: event.title,
-            date: eventDate.toISOString(),
+            date: scheduledTime.toISOString(),
             details: event.description || '',
             priority: event.priority,
+            duration: eventDuration,
           }),
         });
 
@@ -140,6 +158,44 @@ const List = ({ user, events, setEvents }) => {
     } catch (err) {
       console.error('Auto-schedule error:', err);
       alert('Error auto-scheduling events: ' + err.message);
+    }
+  };
+
+  // Helper function to find the next available time slot
+  const findNextAvailableTime = (startTime, scheduledEvents, eventDuration) => {
+    let currentTime = new Date(startTime);
+    
+    // Set business hours (9 AM to 6 PM)
+    const businessStartHour = 9;
+    const businessEndHour = 18;
+    
+    while (true) {
+      // Skip weekends
+      if (currentTime.getDay() === 0 || currentTime.getDay() === 6) {
+        currentTime.setDate(currentTime.getDate() + 1);
+        currentTime.setHours(businessStartHour, 0, 0, 0);
+        continue;
+      }
+      
+      // Skip outside business hours
+      if (currentTime.getHours() < businessStartHour || currentTime.getHours() >= businessEndHour) {
+        currentTime.setHours(businessStartHour, 0, 0, 0);
+        continue;
+      }
+      
+      const eventEnd = new Date(currentTime.getTime() + eventDuration);
+      
+      // Check if this time slot conflicts with any existing events
+      const hasConflict = scheduledEvents.some(existingEvent => {
+        return (currentTime < existingEvent.end && eventEnd > existingEvent.start);
+      });
+      
+      if (!hasConflict) {
+        return currentTime;
+      }
+      
+      // Move to next available slot (increment by 30 minutes)
+      currentTime.setTime(currentTime.getTime() + 30 * 60 * 1000);
     }
   };
 
@@ -178,9 +234,12 @@ const List = ({ user, events, setEvents }) => {
   // Format date to local time with 12-hour format and AM/PM
   const formatDateLocal = (dateStr) => {
     if (!dateStr) return 'No date chosen';
+    
+    // Ensure we're working with a proper date string
     const dt = new Date(dateStr);
     if (isNaN(dt.getTime())) return 'No date chosen';
 
+    // Format the date in local timezone
     const year = dt.getFullYear();
     const month = dt.getMonth() + 1;
     const day = dt.getDate();
@@ -192,7 +251,9 @@ const List = ({ user, events, setEvents }) => {
     hours = hours % 12;
     hours = hours === 0 ? 12 : hours; // Convert 0 to 12 for 12 AM/PM format
 
-    return `${month}/${day}/${year} ${hours}:${minutes} ${ampm}`;
+    const formattedDate = `${month}/${day}/${year} ${hours}:${minutes} ${ampm}`;
+    console.log('Original date string:', dateStr, 'Formatted date:', formattedDate);
+    return formattedDate;
   };
 
   if (!user?._id) return <p>User not loaded. Please log in again.</p>;

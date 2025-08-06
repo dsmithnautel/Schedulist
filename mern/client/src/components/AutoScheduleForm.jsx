@@ -92,7 +92,7 @@ const AutoScheduleForm = ({ onSchedule, onCancel, eventCount }) => {
 
         <div className="mb-4">
           <p className="text-xs text-gray-500">
-            Events will be scheduled at 9 AM, 2 PM, and 7 PM each day, starting from your chosen date and time.
+            Events will be scheduled based on their duration and available time, starting from your chosen date and time.
           </p>
         </div>
 
