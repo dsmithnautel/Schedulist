@@ -2,29 +2,31 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 
-const EventForm = ({ userId, onSuccess, onCancel, maxPriority, initialDate }) => {
+const EventForm = ({ userId, onSuccess, onCancel, maxPriority, initialDate, eventToEdit }) => {
   const [form, setForm] = useState({
-    title: '',
-    date: initialDate || '',
-    duration: '',
-    details: '',
-    priority: maxPriority === -1 ? 0 : maxPriority + 1,
+    title: eventToEdit?.title || '',
+    date: eventToEdit?.date ? new Date(eventToEdit.date).toISOString().slice(0, 16) : (initialDate || ''),
+    duration: eventToEdit?.duration || '',
+    details: eventToEdit?.details || '',
+    priority: eventToEdit?.priority || (maxPriority === -1 ? 0 : maxPriority + 1),
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    setForm((prev) => ({
-      ...prev,
-      priority: maxPriority === -1 ? 0 : maxPriority + 1,
-    }));
-  }, [maxPriority]);
+    if (!eventToEdit) {
+      setForm((prev) => ({
+        ...prev,
+        priority: maxPriority === -1 ? 0 : maxPriority + 1,
+      }));
+    }
+  }, [maxPriority, eventToEdit]);
 
   useEffect(() => {
-    if (initialDate) {
+    if (initialDate && !eventToEdit) {
       setForm((prev) => ({ ...prev, date: initialDate }));
     }
-  }, [initialDate]);
+  }, [initialDate, eventToEdit]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -47,37 +49,7 @@ const EventForm = ({ userId, onSuccess, onCancel, maxPriority, initialDate }) =>
         throw new Error('Title is required.');
       }
 
-      if (maxPriority >= 0) {
-        if (
-            !Number.isInteger(form.priority) ||
-            form.priority < 0 ||
-            form.priority > maxPriority + 1
-        ) {
-          throw new Error(`Priority must be an integer between 0 and ${maxPriority + 1}.`);
-        }
-      }
-
-      const fetchRes = await fetch(`http://localhost:5050/api/events?userId=${userId}`);
-      if (!fetchRes.ok) throw new Error('Failed to fetch events for priority adjustment.');
-      const events = await fetchRes.json();
-
-      const toShift = events
-          .filter(e => e.priority >= form.priority)
-          .sort((a, b) => b.priority - a.priority);
-
-      // Shift existing events' priorities
-      await Promise.all(toShift.map(event =>
-          fetch(`http://localhost:5050/api/events/${event._id}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ priority: event.priority + 1 }),
-          }).then(res => {
-            if (!res.ok) throw new Error('Failed to update event priority');
-          })
-      ));
-
       const eventData = {
-        userId,
         title: form.title.trim(),
         date: form.date || null,
         duration: form.duration === '' ? 0 : parseFloat(form.duration),
@@ -85,13 +57,57 @@ const EventForm = ({ userId, onSuccess, onCancel, maxPriority, initialDate }) =>
         priority: Number.isInteger(form.priority) ? form.priority : 0,
       };
 
-      const createRes = await fetch('http://localhost:5050/api/events', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(eventData),
-      });
+      if (eventToEdit) {
+        // Editing existing event
+        const updateRes = await fetch(`http://localhost:5050/api/events/${eventToEdit.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(eventData),
+        });
 
-      if (!createRes.ok) throw new Error('Failed to create event.');
+        if (!updateRes.ok) throw new Error('Failed to update event.');
+      } else {
+        // Creating new event
+        if (maxPriority >= 0) {
+          if (
+              !Number.isInteger(form.priority) ||
+              form.priority < 0 ||
+              form.priority > maxPriority + 1
+          ) {
+            throw new Error(`Priority must be an integer between 0 and ${maxPriority + 1}.`);
+          }
+        }
+
+        const fetchRes = await fetch(`http://localhost:5050/api/events?userId=${userId}`);
+        if (!fetchRes.ok) throw new Error('Failed to fetch events for priority adjustment.');
+        const events = await fetchRes.json();
+
+        const toShift = events
+            .filter(e => e.priority >= form.priority)
+            .sort((a, b) => b.priority - a.priority);
+
+        // Shift existing events' priorities
+        await Promise.all(toShift.map(event =>
+            fetch(`http://localhost:5050/api/events/${event._id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ priority: event.priority + 1 }),
+            }).then(res => {
+              if (!res.ok) throw new Error('Failed to update event priority');
+            })
+        ));
+
+        const createRes = await fetch('http://localhost:5050/api/events', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...eventData,
+            userId,
+          }),
+        });
+
+        if (!createRes.ok) throw new Error('Failed to create event.');
+      }
 
       onSuccess();
     } catch (err) {
@@ -113,6 +129,9 @@ const EventForm = ({ userId, onSuccess, onCancel, maxPriority, initialDate }) =>
             onClick={(e) => e.stopPropagation()}
             className="border rounded-md bg-gray-100 max-w-md w-full p-6 fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 shadow-lg"
         >
+          <h3 className="text-lg font-semibold mb-4">
+            {eventToEdit ? 'Edit Event' : 'Create New Event'}
+          </h3>
           <div className="mb-2">
             <label className="block font-medium">Title *</label>
             <input
@@ -195,7 +214,7 @@ const EventForm = ({ userId, onSuccess, onCancel, maxPriority, initialDate }) =>
                 className="bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700 disabled:opacity-50"
                 disabled={isSubmitting}
             >
-              {isSubmitting ? 'Saving...' : 'Save Event'}
+              {isSubmitting ? 'Saving...' : (eventToEdit ? 'Update Event' : 'Save Event')}
             </button>
           </div>
         </form>
@@ -209,6 +228,7 @@ EventForm.propTypes = {
   onCancel: PropTypes.func.isRequired,
   maxPriority: PropTypes.number.isRequired,
   initialDate: PropTypes.string,
+  eventToEdit: PropTypes.object,
 };
 
 export default EventForm;

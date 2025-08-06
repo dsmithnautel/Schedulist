@@ -10,6 +10,25 @@ const Calendar = ({ user, events, setEvents }) => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  const [eventToEdit, setEventToEdit] = useState(null);
+
   const maxPriority =
     events.length === 0 ? -1 : Math.max(...events.map((e) => e.priority ?? 0));
 
@@ -57,6 +76,21 @@ const Calendar = ({ user, events, setEvents }) => {
   const handleFormCancel = () => {
     setIsFormOpen(false);
     setSelectedDate(null);
+    setEventToEdit(null);
+  };
+
+  const handleEventClick = (info) => {
+    const event = events.find(e => e.id === info.event.id);
+    if (event) {
+      setEventToEdit(event);
+      setIsFormOpen(true);
+    }
+  };
+
+  const handleEditSuccess = async () => {
+    setIsFormOpen(false);
+    setEventToEdit(null);
+    await fetchEvents();
   };
 
   const toLocalDateISO = (date) => {
@@ -127,10 +161,11 @@ const Calendar = ({ user, events, setEvents }) => {
       {isFormOpen && (
         <EventForm
           userId={user._id}
-          onSuccess={handleFormSuccess}
+          onSuccess={eventToEdit ? handleEditSuccess : handleFormSuccess}
           onCancel={handleFormCancel}
           maxPriority={maxPriority}
           initialDate={selectedDate}
+          eventToEdit={eventToEdit}
         />
       )}
 
@@ -142,6 +177,7 @@ const Calendar = ({ user, events, setEvents }) => {
         droppable={true}
         events={events.filter((e) => e.date)}
         dateClick={handleDateClick}
+        eventClick={handleEventClick}
         eventDrop={handleEventDrop}
         eventReceive={handleEventReceive}
         timeZone="local"

@@ -10,6 +10,7 @@ const List = ({ user, events, setEvents }) => {
 
   const [showForm, setShowForm] = useState(false);
   const [showAutoScheduleForm, setShowAutoScheduleForm] = useState(false);
+  const [eventToEdit, setEventToEdit] = useState(null);
 
   useEffect(() => {
     if (listRef.current) {
@@ -146,6 +147,22 @@ const List = ({ user, events, setEvents }) => {
     setShowAutoScheduleForm(false);
   };
 
+  const handleEditEvent = (event) => {
+    setEventToEdit(event);
+    setShowForm(true);
+  };
+
+  const handleEditSuccess = async () => {
+    setShowForm(false);
+    setEventToEdit(null);
+    await fetchEvents();
+  };
+
+  const handleEditCancel = () => {
+    setShowForm(false);
+    setEventToEdit(null);
+  };
+
   const handleDelete = async (eventId) => {
     try {
       const res = await fetch(`http://localhost:5050/api/events/${eventId}`, {
@@ -208,9 +225,10 @@ const List = ({ user, events, setEvents }) => {
         {showForm && (
             <EventForm
                 userId={user._id}
-                onSuccess={handleFormSuccess}
-                onCancel={handleFormCancel}
+                onSuccess={eventToEdit ? handleEditSuccess : handleFormSuccess}
+                onCancel={eventToEdit ? handleEditCancel : handleFormCancel}
                 maxPriority={highestPriority}
+                eventToEdit={eventToEdit}
             />
         )}
 
@@ -244,6 +262,7 @@ const List = ({ user, events, setEvents }) => {
                                     data-id={event.id}
                                     data-title={event.title}
                                     data-description={event.description}
+                                    onClick={() => handleEditEvent(event)}
                                     style={{
                                       padding: '6px 10px',
                                       backgroundColor: event.date ? '#94a3b8' : '#3788d8',
